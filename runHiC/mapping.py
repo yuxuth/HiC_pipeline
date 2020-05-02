@@ -241,7 +241,7 @@ def map_core(fastq_1, fastq_2, ref, outdir, aligner='minimap2', outformat='SAM',
 def parse_bam(bam, outfile, genomepath, chromsizes, assembly, min_mapq, max_molecule_size, max_inter_align_gap,
               walks_policy, include_readid, include_sam, drop_seq, tmpdir, enzyme):
     
-    frag_path = create_frag(genomepath, chromsizes, enzyme, tmpdir)
+    frag_path = create_frag(genomepath, chromsizes, enzyme, tmpdir). ## hindIII fragment 
     out_total = outfile.replace('.pairsam.gz', '.total.pairsam.gz')
     
     basic_command = ['pairtools', 'parse', '-c', chromsizes, '--assembly', assembly,
@@ -287,10 +287,10 @@ def parse_bam(bam, outfile, genomepath, chromsizes, assembly, min_mapq, max_mole
               'total_single_sided_mapped':'020_SingleSideMappedReads',
               'total_unmapped':'030_UnmappedReads'
               }
-    stats = stats_pairs(out_total, refkey)
+    stats = stats_pairs(out_total, refkey). ## use all unfiltered reads for the first stat, including mapped status
     stats['100_NormalPairs'] = stats['010_DoubleSideMappedReads']
 
-    outpath_1 = outfile.replace('.pairsam.gz', '.select.pairsam.gz')
+    outpath_1 = outfile.replace('.pairsam.gz', '.select.pairsam.gz'). ## total. to selected only UU and UR reads
     pipeline = []
     try:
         select_command = ['pairtools', 'select', '(pair_type=="UU") or (pair_type=="UR") or (pair_type=="RU")',
@@ -316,7 +316,7 @@ def parse_bam(bam, outfile, genomepath, chromsizes, assembly, min_mapq, max_mole
     pipeline = []
     try:
         # assign fragment
-        restrict_command = ['pairtools', 'restrict', '-f', frag_path, outpath_1]
+        restrict_command = ['pairtools', 'restrict', '-f', frag_path, outpath_1]. ## update the fragment information 
         pipeline.append(
             subprocess.Popen(restrict_command,
                 stdout=subprocess.PIPE,
@@ -325,7 +325,8 @@ def parse_bam(bam, outfile, genomepath, chromsizes, assembly, min_mapq, max_mole
 
         ####### COLS[-6]==COLS[-3], the index may change to follow pairtools
         select_command = ['pairtools', 'select', '--output-rest', outfile, '-o', outpath_2,
-                          '(COLS[-6]==COLS[-3]) and (chrom1==chrom2)']
+                          '(COLS[-6]==COLS[-3]) and (chrom1==chrom2)']  ## outfile is .pairsam.gz and same fragment is selected.samefrag. 
+                                                                        ## only for the stat purpurse. keeped for the peak pile up purpose    
         pipeline.append(
             subprocess.Popen(select_command,
                 stdin=pipeline[-1].stdout,
@@ -342,7 +343,7 @@ def parse_bam(bam, outfile, genomepath, chromsizes, assembly, min_mapq, max_mole
     
     os.remove(outpath_1)
 
-    substats, libsize = stats_samfrag(outpath_2)
+    substats, libsize = stats_samfrag(outpath_2) ## same fragment 
     stats['110_AfterFilteringReads'] = stats['100_NormalPairs'] - substats['120_SameFragmentReads']
     stats['400_TotalContacts'] = stats['110_AfterFilteringReads']
     stats.update(substats)
